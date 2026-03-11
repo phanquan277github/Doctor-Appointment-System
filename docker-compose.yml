@@ -1,126 +1,56 @@
-version: '3.8'   
+version: '3.8'
 
-services:      
-
-  web:          
+services:
+  web:
     # Username Docker Hub 
     image: ntnguyen055/doctor-appointment:latest
-    # Docker image được pull từ Docker Hub (image đã build từ Jenkins)
-
     container_name: django_web
-    # Đặt tên container để dễ quản lý
-
     restart: always
-    # Nếu container bị crash thì Docker tự khởi động lại
-
     command: gunicorn docappsystem.wsgi:application --bind 0.0.0.0:8000
-    # Lệnh chạy Django bằng Gunicorn (production server)
-    # Ứng dụng Django sẽ chạy tại port 8000 trong container
-
     expose:
       - "8000"
-    # Chỉ expose port 8000 cho các container khác trong docker network
-    # Không mở port ra bên ngoài server
-
     depends_on:
       - db
-    # Container web chỉ khởi động sau khi container db được tạo
-
     environment:
       - DEBUG=0
-    # Biến môi trường cho Django (0 = chế độ production)
-
     volumes:                                 
       - media_data:/app/media                
-    # Mount volume để lưu file media (ảnh upload, file upload)
-    # Tránh mất dữ liệu khi container bị xóa
 
-
-  nginx:   # Service reverse proxy
+  nginx:
     image: nginx:alpine
-    # Sử dụng image Nginx nhẹ (alpine version)
-
     container_name: nginx_proxy
-    # Tên container nginx
-
     restart: always
-    # Nếu container bị dừng thì Docker sẽ tự restart
-
     ports:
       - "80:80"
-    # Map port 80 của server -> port 80 của container nginx
-    # Người dùng truy cập website qua HTTP
-
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
-    # Mount file cấu hình nginx từ máy host vào container
-
       - media_data:/app/media                
-    # Cho nginx truy cập file media (ảnh upload của Django)
-
     depends_on:
       - web
-    # Nginx chỉ chạy sau khi container Django đã chạy
 
-
-  db:    # Service database MySQL
+  db:
     image: mysql:8.0
-    # Sử dụng MySQL version 8
-
     container_name: mysql_db
-    # Tên container database
-
     restart: always
-    # Tự restart nếu container dừng
-
     environment:
       MYSQL_DATABASE: docaspythondb
-      # Tạo database tên docaspythondb khi container khởi động
-
       MYSQL_ROOT_PASSWORD: 'Banhmi4o@'
-      # Mật khẩu root của MySQL
-
     volumes:
       - db_data:/var/lib/mysql
-      # Volume lưu trữ dữ liệu database
-      # Tránh mất dữ liệu khi container bị xóa
-
       - ./SQLFile/docaspythondb.sql:/docker-entrypoint-initdb.d/init.sql
-      # Khi MySQL khởi động lần đầu
-      # file SQL này sẽ được chạy để tạo bảng và dữ liệu ban đầu
 
-
-  phpmyadmin:   # Service quản lý database bằng giao diện web
+  phpmyadmin:
     image: phpmyadmin/phpmyadmin
-    # Image phpMyAdmin
-
     container_name: phpmyadmin
-    # Tên container
-
     restart: always
-    # Tự restart nếu container dừng
-
     environment:
       PMA_HOST: db
-      # phpMyAdmin sẽ kết nối đến container MySQL tên "db"
-
       MYSQL_ROOT_PASSWORD: 'Banhmi4o@'
-      # Mật khẩu root để đăng nhập MySQL
-
     ports:
       - "8081:80"
-    # Truy cập phpMyAdmin qua:
-    # http://server-ip:8081
-
     depends_on:
       - db
-    # phpMyAdmin chỉ chạy sau khi database khởi động
 
-
-volumes:      # Khai báo các Docker volumes để lưu dữ liệu
-
+volumes:
   db_data:
-  # Volume lưu dữ liệu MySQL
-
-  media_data:                                 
-  # Volume lưu file media Django (ảnh upload)
+  media_data:                                
