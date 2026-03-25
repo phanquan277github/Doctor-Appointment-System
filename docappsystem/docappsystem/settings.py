@@ -1,7 +1,3 @@
-"""
-File cấu hình Django cho project docappsystem.
-"""
-
 from pathlib import Path
 import os
 
@@ -26,7 +22,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',       # Hệ thống thông báo
     'django.contrib.staticfiles',    # Quản lý file tĩnh (CSS, JS, Images)
     'dasapp',                       # App chính của hệ thống
-    'docappsystem',                 # App project (dùng để load templates/static nếu cần)
+    'storages'                      # Đã sửa đổi: Bổ sung chữ 's' để nạp đúng thư viện AWS S3
 ]
 
 # Danh sách middleware xử lý request/response
@@ -61,9 +57,6 @@ TEMPLATES = [
                 'django.template.context_processors.request',    # Cung cấp object request
                 'django.contrib.auth.context_processors.auth',   # Cung cấp thông tin user
                 'django.contrib.messages.context_processors.messages', # Cung cấp message
-
-                # Context processor tùy chỉnh (bật nếu tồn tại file tương ứng)
-                # 'dasapp.custom_context_processors.logo_context_processor',
             ],
         },
     },
@@ -73,15 +66,15 @@ TEMPLATES = [
 WSGI_APPLICATION = 'docappsystem.wsgi.application'
 
 # Cấu hình cơ sở dữ liệu
-# Sử dụng MySQL và kết nối tới container MySQL trong Docker
+# Sử dụng kết nối luân chuyển lấy từ két sắt .env để kết nối tới AWS RDS
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',  # Sử dụng MySQL backend
-        'NAME': 'docaspythondb',              
-        'USER': 'root',                       
-        'PASSWORD': 'Banhmi4o@',               
-        'HOST': 'db',                          # Tên service MySQL trong docker-compose.yml
-        'PORT': '3306',                        
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.environ.get('RDS_DB_NAME', 'docaspythondb'),
+        'USER': os.environ.get('RDS_USERNAME', 'admin'),
+        'PASSWORD': os.environ.get('RDS_PASSWORD', 'Banhmi4o@'),
+        'HOST': os.environ.get('RDS_ENDPOINT'),  # Trỏ về AWS RDS Endpoint
+        'PORT': os.environ.get('RDS_PORT', '3306'),
     }
 }
 
@@ -89,19 +82,15 @@ DATABASES = {
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-        # Kiểm tra mật khẩu không được giống thông tin người dùng
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-        # Kiểm tra độ dài tối thiểu
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-        # Ngăn sử dụng mật khẩu phổ biến
     },
     {
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-        # Ngăn sử dụng mật khẩu chỉ chứa số
     },
 ]
 
@@ -133,3 +122,18 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Sử dụng CustomUser model thay vì User mặc định của Django
 AUTH_USER_MODEL = 'dasapp.CustomUser'
+
+# Khai báo động các biến môi trường cấu hình AWS S3
+AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
+AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME', 'ap-southeast-1')
+AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
+AWS_DEFAULT_ACL = 'public-read'
+
+# Cấu hình phân tách rành mạch cơ chế lưu trữ File: Static giữ nguyên, Media ném thẳng lên S3
+if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY:
+    STORAGES = {
+        "default": {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"},
+        "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    }

@@ -2,19 +2,25 @@ version: '3.8'
 
 services:
   web:
-    # Username Docker Hub 
     image: ntnguyen055/doctor-appointment:latest
     container_name: django_web
     restart: always
     command: gunicorn docappsystem.wsgi:application --bind 0.0.0.0:8000
     expose:
       - "8000"
-    depends_on:
-      - db
     environment:
       - DEBUG=0
-    volumes:                                 
-      - media_data:/app/media                
+      # Thông tin S3
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME}
+      - AWS_S3_REGION_NAME=${AWS_S3_REGION_NAME}
+      # Thông tin RDS mới
+      - RDS_DB_NAME=${RDS_DB_NAME}
+      - RDS_USERNAME=${RDS_USERNAME}
+      - RDS_PASSWORD=${RDS_PASSWORD}
+      - RDS_ENDPOINT=${RDS_ENDPOINT}
+      - RDS_PORT=3306
 
   nginx:
     image: nginx:alpine
@@ -24,33 +30,5 @@ services:
       - "80:80"
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
-      - media_data:/app/media                
     depends_on:
       - web
-
-  db:
-    image: mysql:8.0
-    container_name: mysql_db
-    restart: always
-    environment:
-      MYSQL_DATABASE: docaspythondb
-      MYSQL_ROOT_PASSWORD: 'Banhmi4o@'
-    volumes:
-      - db_data:/var/lib/mysql
-      - ./SQLFile/docaspythondb.sql:/docker-entrypoint-initdb.d/init.sql
-
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    container_name: phpmyadmin
-    restart: always
-    environment:
-      PMA_HOST: db
-      MYSQL_ROOT_PASSWORD: 'Banhmi4o@'
-    ports:
-      - "8081:80"
-    depends_on:
-      - db
-
-volumes:
-  db_data:
-  media_data:                                
