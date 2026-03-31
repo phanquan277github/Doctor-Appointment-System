@@ -24,16 +24,26 @@ services:
     expose:
       - "8000"
 
-    # [BÍ KÍP DEVSECOPS Ở ĐÂY]
-    # Nạp toàn bộ két sắt .env vật lý thẳng vào lõi Container
-    # Cách này giúp bảo mật tuyệt đối và không phụ thuộc vào Shell của Jenkins
-    env_file:
-      - .env
-
-    # Vẫn giữ lại khối environment để ghi đè các biến cố định không cần giấu
+    # Biến môi trường truyền vào container
+    # Django sẽ đọc các biến này trong settings.py
     environment:
+
       # Tắt chế độ debug (production mode)
       - DEBUG=0
+
+      # Thông tin AWS S3 (dùng để lưu ảnh, file upload) 
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME}
+      - AWS_S3_REGION_NAME=${AWS_S3_REGION_NAME}
+
+      # Thông tin AWS RDS (database MySQL trên cloud) 
+      - RDS_DB_NAME=${RDS_DB_NAME}        # tên database
+      - RDS_USERNAME=${RDS_USERNAME}      # user database
+      - RDS_PASSWORD=${RDS_PASSWORD}      # password database
+      - RDS_ENDPOINT=${RDS_ENDPOINT}      # địa chỉ server RDS
+      - RDS_PORT=3306                     # cổng MySQL (mặc định là 3306)
+
 
   # 2. Nginx container
   nginx:
