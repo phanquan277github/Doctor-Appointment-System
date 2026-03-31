@@ -72,7 +72,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': os.environ.get('RDS_DB_NAME', 'docaspythondb'),
         'USER': os.environ.get('RDS_USERNAME', 'admin'),
-        'PASSWORD': os.environ.get('RDS_PASSWORD', 'Banhmi4o@'),
+        'PASSWORD': os.environ.get('RDS_PASSWORD', 'Banhmi4o'),
         'HOST': os.environ.get('RDS_ENDPOINT'),  # Trỏ về AWS RDS Endpoint
         'PORT': os.environ.get('RDS_PORT', '3306'),
     }
