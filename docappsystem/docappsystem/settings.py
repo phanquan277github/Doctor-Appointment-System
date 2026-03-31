@@ -73,7 +73,8 @@ DATABASES = {
         'NAME': os.environ.get('RDS_DB_NAME', 'docaspythondb'),
         'USER': os.environ.get('RDS_USERNAME', 'admin'),
         'PASSWORD': os.environ.get('RDS_PASSWORD', 'Banhmi4o'),
-        'HOST': os.environ.get('RDS_ENDPOINT'),  # Trỏ về AWS RDS Endpoint
+        # Trỏ về AWS RDS Endpoint với cơ chế Fallback an toàn tuyệt đối
+        'HOST': os.environ.get('RDS_ENDPOINT', 'appointment-db-production.ch0gsei0m4lf.ap-southeast-1.rds.amazonaws.com'),  
         'PORT': os.environ.get('RDS_PORT', '3306'),
     }
 }
@@ -123,10 +124,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Sử dụng CustomUser model thay vì User mặc định của Django
 AUTH_USER_MODEL = 'dasapp.CustomUser'
 
-# Khai báo động các biến môi trường cấu hình AWS S3
+# Khai báo động các biến môi trường cấu hình AWS S3 kèm cơ chế Fallback
 AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
-AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
+AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME', 'appointment-media-ntnguyen055')
 AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME', 'ap-southeast-1')
 AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
 AWS_DEFAULT_ACL = 'public-read'
