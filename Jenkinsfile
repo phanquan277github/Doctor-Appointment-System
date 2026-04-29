@@ -37,7 +37,8 @@ pipeline {
                     -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                     -Dsonar.sources=docappsystem \
                     -Dsonar.host.url=${SONAR_URL} \
-                    -Dsonar.token=${SONAR_AUTH_TOKEN}
+                    -Dsonar.token=${SONAR_AUTH_TOKEN} \
+                    -Dsonar.exclusions=**/static/assets/**,**/*.min.js,**/*.min.css
                     """
                 }
             }
