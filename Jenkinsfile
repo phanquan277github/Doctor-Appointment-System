@@ -59,8 +59,16 @@ pipeline {
 
         stage('4. Container Security - Trivy Scan') {
             steps {
-                echo '--- Scanning Image with Trivy ---'
-                sh "trivy image --severity HIGH,CRITICAL --exit-code 0 ${DOCKER_USER}/${IMAGE_NAME}:${TAG}"
+                echo '--- Scanning Image with Trivy Container ---'
+                // Dùng container Trivy quét image, tự động xóa container (--rm) sau khi quét xong
+                sh """
+                docker run --rm \
+                -v /var/run/docker.sock:/var/run/docker.sock \
+                aquasec/trivy:latest image \
+                --severity HIGH,CRITICAL \
+                --exit-code 0 \
+                ${DOCKER_USER}/${IMAGE_NAME}:${TAG}
+                """
             }
         }
 
