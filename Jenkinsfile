@@ -152,7 +152,7 @@ pipeline {
                     reportName: 'OWASP ZAP DAST Report',
                     reportTitles: 'ZAP Security Scan Results'
                 ])
-                echo 'DONE test web hook'
+                echo 'DONE test web hook v2'
             }
         }
     }
