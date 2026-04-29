@@ -1,34 +1,36 @@
 # Phiên bản docker-compose đang dùng
 version: '3.8'
 
+networks:
+  devsecops_net:
+    driver: bridge
+
 # Khai báo các container (services) sẽ chạy
 services:
 
   # 1. Django container
   web:
-    # Image đã build sẵn trên Docker Hub
-    image: ntnguyen055/doctor-appointment:latest
+    # Nhận image từ Jenkins Pipeline
+    image: ${DOCKER_USER}/${IMAGE_NAME}:${TAG}
     
-    # Tên container khi chạy (dễ quản lý hơn)
+    # Tên container khi chạy
     container_name: django_web
     
     # Nếu container bị crash thì tự chạy lại
     restart: always
 
     # Lệnh chạy khi container start
-    # Gunicorn dùng để chạy Django trên production
     command: gunicorn docappsystem.wsgi:application --bind 0.0.0.0:8000
 
     # Chỉ mở cổng nội bộ giữa các container
-    # Không public ra ngoài internet
     expose:
       - "8000"
+      
+    networks:
+      - devsecops_net
 
     # Biến môi trường truyền vào container
-    # Django sẽ đọc các biến này trong settings.py
     environment:
-
-      # Tắt chế độ debug (production mode)
       - DEBUG=0
 
       # Thông tin AWS S3 (dùng để lưu ảnh, file upload) 
@@ -42,34 +44,31 @@ services:
       - RDS_USERNAME=${RDS_USERNAME}      # user database
       - RDS_PASSWORD=${RDS_PASSWORD}      # password database
       - RDS_ENDPOINT=${RDS_ENDPOINT}      # địa chỉ server RDS
-
-      # Thông tin AWS Replica RDS (database MySQL trên cloud) 
       - RDS_REPLICA_ENDPOINT=${RDS_REPLICA_ENDPOINT}
-
       - RDS_PORT=3306                     # cổng MySQL (mặc định là 3306)
 
-
-  # 2. Nginx container
-  nginx:
-    # Image nginx nhẹ (alpine = bản tối giản, chạy nhanh)
-    image: nginx:alpine
-
-    # Tên container
-    container_name: nginx_proxy
-
-    # Nếu container bị lỗi thì tự chạy lại
-    restart: always
-
-    # Map cổng 80 của máy thật -> cổng 80 của container
-    # Nghĩa là truy cập trình duyệt: http://localhost
+  # 2. LỚP KHIÊN BẢO VỆ (WAF ModSecurity) thay thế cho Nginx cũ
+  waf:
+    # Image Nginx tích hợp sẵn OWASP ModSecurity CRS
+    image: owasp/modsecurity-crs:nginx
+    container_name: nginx_proxy_waf
     ports:
-      - "80:80"
-
-    # Mount file config nginx từ máy thật vào container
-    # Bạn chỉnh file default.conf thì nginx trong container cũng thay đổi theo
-    volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
-
-    # Đảm bảo container nginx chỉ chạy sau khi container web đã chạy
+      - "80:8080" # Bản ModSecurity CRS dùng cổng 8080 nội bộ
+    environment:
+      # Proxy ngược (Reverse Proxy) trỏ thẳng vào container web
+      - BACKEND=http://web:8000
+      - SEC_RULE_ENGINE=On
+      # --- CẤU HÌNH REAL IP CHO AWS ALB ---
+      - SET_REAL_IP_FROM=172.31.0.0/16,10.0.0.0/8
+      - REAL_IP_HEADER=X-Forwarded-For
+      # --- ÉP XUẤT FILE AUDIT LOG CHO WAZUH ---
+      - MODSEC_AUDIT_ENGINE=RelevantOnly
+      - MODSEC_AUDIT_LOG_FORMAT=JSON
+      - MODSEC_AUDIT_LOG=/var/log/nginx/modsec_audit.log
     depends_on:
       - web
+    networks:
+      - devsecops_net
+    volumes:
+      - ./waf-logs:/var/log/nginx
+    restart: always
