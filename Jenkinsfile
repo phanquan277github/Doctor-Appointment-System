@@ -3,12 +3,12 @@ pipeline {
 
     environment {
         // 1. CẤU HÌNH DOCKER HUB
-        DOCKER_USER = 'ntnguyen055' 
+        DOCKER_USER = 'phanquan277dockerhub' 
         IMAGE_NAME = 'doctor-appointment'
         TAG = "${env.BUILD_NUMBER}"
         
         // 2. CẤU HÌNH GITHUB
-        GIT_URL     = 'https://github.com/NTNguyen055/Doctor-Appointment-System.git'
+        GIT_URL     = 'https://github.com/phanquan277github/Doctor-Appointment-System.git'
         GIT_BRANCH  = 'main'
         
         // 3. CẤU HÌNH SONARQUBE (Tại Local)
@@ -18,11 +18,11 @@ pipeline {
         
         // 4. CẤU HÌNH AWS EC2 DEPLOYMENT (Môi trường Production)
         // IP từ cấu hình cụm máy chủ gốc
-        EC2_SERVER_IPS = '13.212.214.54,13.229.211.98'
+        EC2_SERVER_IPS = '100.111.117.71,100.90.177.20'
         DEPLOY_DIR    = '~/doctor-appointment'
         
         // 5. CẤU HÌNH OWASP ZAP (Tấn công)
-        TARGET_URL = 'http://13.212.214.54' // Hoặc điền ALB URL
+        TARGET_URL = 'Appointment-Web-ALB-147818110.ap-southeast-1.elb.amazonaws.com' // Hoặc điền ALB URL
 
     }
 
@@ -37,7 +37,7 @@ pipeline {
                     -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                     -Dsonar.sources=docappsystem \
                     -Dsonar.host.url=${SONAR_URL} \
-                    -Dsonar.login=${SONAR_AUTH_TOKEN}
+                    -Dsonar.token=${SONAR_AUTH_TOKEN}
                     """
                 }
             }
@@ -47,8 +47,7 @@ pipeline {
             steps {
                 echo '--- Building Docker Image ---'
                 script {
-                    // Dùng dockerhub-creds từ Jenkinsfile gốc
-                    docker.withRegistry('', 'dockerhub-creds') {
+                    docker.withRegistry('', 'docker-hub-credentials') {
                         // Build context là thư mục docappsystem
                         def appImage = docker.build("${DOCKER_USER}/${IMAGE_NAME}:${TAG}", "./docappsystem")
                         appImage.push()
