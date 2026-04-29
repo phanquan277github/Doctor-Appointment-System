@@ -22,7 +22,7 @@ pipeline {
         DEPLOY_DIR    = '~/doctor-appointment'
         
         // 5. CẤU HÌNH OWASP ZAP (Tấn công)
-        TARGET_URL = 'Appointment-Web-ALB-147818110.ap-southeast-1.elb.amazonaws.com' // Hoặc điền ALB URL
+        TARGET_URL = 'http://Appointment-Web-ALB-147818110.ap-southeast-1.elb.amazonaws.com' // Hoặc điền ALB URL
 
     }
 
@@ -152,6 +152,7 @@ pipeline {
                     reportName: 'OWASP ZAP DAST Report',
                     reportTitles: 'ZAP Security Scan Results'
                 ])
+                echo 'DONE test web hook'
             }
         }
     }
