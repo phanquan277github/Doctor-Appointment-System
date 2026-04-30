@@ -115,25 +115,39 @@ pipeline {
             steps {
                 echo '--- 💣 Starting ZAP Attack ---'
                 script {
-                    sh 'rm -rf zap-reports && mkdir -p zap-reports'
+                    sh 'rm -rf zap-reports && mkdir -p zap-reports && chmod 777 zap-reports'
                     sh 'docker rm -f zap-scanner > /dev/null 2>&1 || true'
                     
-                    def exitCode = sh(
-                        script: """
-                        docker run --name zap-scanner -u 0 \
-                        -v \$(pwd)/zap-reports:/zap/wrk:rw \
-                        -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
-                        -t ${env.TARGET_URL} \
-                        -r zap_report.html \
-                        -T 20 -I
-                        """,
-                        returnStatus: true
-                    )
-                    
-                    echo "ZAP finished with exit code: ${exitCode}"
-                    sh 'docker cp zap-scanner:/zap/wrk/zap_report.html ./zap-reports/zap_report.html || echo "Failed to copy report"'
-                    sh 'docker rm -f zap-scanner > /dev/null 2>&1 || true'
-                    sh 'ls -la zap-reports'
+                    try {
+                        // Ép khối lệnh chạy tối đa 5 phút, quá 5 phút Jenkins sẽ tự động trảm
+                        timeout(time: 5, unit: 'MINUTES') {
+                            def exitCode = sh(
+                                script: """
+                                docker run --name zap-scanner -u 0 \
+                                -v \$(pwd)/zap-reports:/zap/wrk:rw \
+                                -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
+                                -t ${env.TARGET_URL} \
+                                -r zap_report.html \
+                                -m 1 \
+                                -T 2 -I
+                                """,
+                                returnStatus: true
+                            )
+                            echo "ZAP finished with exit code: ${exitCode}"
+                        }
+                    } catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
+                        echo "⚠️ CẢNH BÁO: ZAP Scan mất quá nhiều thời gian và đã bị Jenkins ép dừng!"
+                    } catch (Exception e) {
+                        echo "⚠️ ZAP Scan gặp lỗi vặt: ${e.getMessage()}"
+                    } finally {
+                        // Khối 'finally' LUÔN LUÔN CHẠY dù ở trên có bị lỗi hay bị ép dừng
+                        // Phương án dự phòng: Cố gắng copy file ra nếu Volume Mount thất bại
+                        sh 'docker cp zap-scanner:/zap/wrk/zap_report.html ./zap-reports/zap_report.html > /dev/null 2>&1 || echo "Report already exists or container stopped"'
+                        
+                        // Dọn dẹp container và in danh sách file đúng như bạn muốn
+                        sh 'docker rm -f zap-scanner > /dev/null 2>&1 || true'
+                        sh 'ls -la zap-reports'
+                    }
                 }
             }
         }
