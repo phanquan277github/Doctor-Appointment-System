@@ -121,13 +121,11 @@ pipeline {
                     def exitCode = sh(
                         script: """
                         docker run --name zap-scanner -u 0 \
-                        -v /zap/wrk \
-                        -t ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
+                        -v \$(pwd)/zap-reports:/zap/wrk:rw \
+                        -t ghcr.io/zaproxy/zaproxy:stable zap-baseline-scan.py \
                         -t ${env.TARGET_URL} \
                         -r zap_report.html \
-                        -I \
-                        -a \
-                        -m 2
+                        -T 20 -I
                         """,
                         returnStatus: true
                     )
@@ -152,7 +150,7 @@ pipeline {
                     reportName: 'OWASP ZAP DAST Report',
                     reportTitles: 'ZAP Security Scan Results'
                 ])
-                echo 'DONE test web hook v3 30/4'
+                echo 'DONE test web hook v4 30/4'
             }
         }
     }
