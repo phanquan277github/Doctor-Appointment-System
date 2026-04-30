@@ -102,7 +102,7 @@ pipeline {
                                 sudo docker-compose down --remove-orphans
                                 
                                 # Chạy container mới: Truyền Image tags vào (Docker Compose sẽ tự tự động đọc file .env cố định trên máy chủ)
-                                sudo DOCKER_USER=${DOCKER_USER} IMAGE_NAME=${IMAGE_NAME} TAG=${TAG} docker-compose up -d
+                                sudo -E env DOCKER_USER=${DOCKER_USER} IMAGE_NAME=${IMAGE_NAME} TAG=${TAG} docker-compose up -d
                             '
                             """
                         }
@@ -122,7 +122,7 @@ pipeline {
                         script: """
                         docker run --name zap-scanner -u 0 \
                         -v \$(pwd)/zap-reports:/zap/wrk:rw \
-                        -t ghcr.io/zaproxy/zaproxy:stable zap-baseline-scan.py \
+                        -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
                         -t ${env.TARGET_URL} \
                         -r zap_report.html \
                         -T 20 -I
@@ -141,16 +141,22 @@ pipeline {
         stage('7. Publish Report') {
             steps {
                 echo '--- 📊 Archiving Report ---'
-                publishHTML (target: [
-                    allowMissing: false,
-                    alwaysLinkToLastBuild: true,
-                    keepAll: true,
-                    reportDir: 'zap-reports',
-                    reportFiles: 'zap_report.html',
-                    reportName: 'OWASP ZAP DAST Report',
-                    reportTitles: 'ZAP Security Scan Results'
-                ])
-                echo 'DONE test web hook v4 30/4'
+                script {
+                    if (fileExists('zap-reports/zap_report.html')) {
+                        publishHTML (target: [
+                            allowMissing: false,
+                            alwaysLinkToLastBuild: true,
+                            keepAll: true,
+                            reportDir: 'zap-reports',
+                            reportFiles: 'zap_report.html',
+                            reportName: 'OWASP ZAP DAST Report',
+                            reportTitles: 'ZAP Security Scan Results'
+                        ])
+                    } else {
+                        echo "⚠️ Warning: ZAP Report file not found, skipping publish step."
+                    }
+                }
+                echo 'DONE test web hook 30/4 v5'
             }
         }
     }
